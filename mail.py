@@ -1,25 +1,24 @@
 import asyncio
-import os
 import aiohttp
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
+from aiogram.client.bot import Bot
+from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.types import Message
 
-# === TOKEN ===
-# Direkt token (hızlı test için)
+# === TELEGRAM TOKEN ===
 BOT_TOKEN = "8567370465:AAHMLslV5JjWgxUP373p8ksBc7bQjpCw2hM"
 
-# Render Secret kullanmak istersen:
-# BOT_TOKEN = os.getenv("BOT_TOKEN")
+# === BOT OLUŞTURMA (AIROGRAM 3.7+ UYUMLU) ===
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="HTML")
+)
 
-# Bot ve Dispatcher oluştur
-bot = Bot(BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
-# Kullanıcı verileri
 users = {}
 
-# 1SecMail API
 API = "https://www.1secmail.com/api/v1/"
 
 async def api(params):
@@ -47,11 +46,10 @@ async def read_msg(login, domain, mid):
         "id": mid
     })
 
-# Mail watcher
 async def watcher():
     while True:
-        await asyncio.sleep(20)  # 20 saniyede bir kontrol
-        for uid, u in users.items():
+        await asyncio.sleep(20)
+        for uid, u in list(users.items()):
             msgs = await inbox(u["login"], u["domain"])
             for m in msgs:
                 if m["id"] not in u["seen"]:
@@ -67,7 +65,6 @@ async def watcher():
                         f"{body[:3500]}"
                     )
 
-# /start komutu
 @dp.message(Command("start"))
 async def start(m: Message):
     login, domain, mail = await gen_mail()
@@ -83,7 +80,6 @@ async def start(m: Message):
         f"/new → yeni adres"
     )
 
-# /new komutu
 @dp.message(Command("new"))
 async def new(m: Message):
     login, domain, mail = await gen_mail()
@@ -94,7 +90,6 @@ async def new(m: Message):
     }
     await m.answer(f"🆕 <code>{mail}</code>")
 
-# Main
 async def main():
     asyncio.create_task(watcher())
     await dp.start_polling(bot)
